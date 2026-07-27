@@ -91,3 +91,33 @@ def test_forward_compatibility(default_config):
     }
     decision = evaluate(site, default_config)
     assert decision.outcome == "APPROVED"
+
+def test_transmission_zero_required_bandwidth(default_config):
+    site = {
+        "site_id": "SITE-6",
+        "site_type": "rooftop",
+        "current_load_pct": 90,
+        "spectrum_available": True,
+        "backhaul_capacity_mbps": 500,
+        "backhaul_required_mbps": 0,
+        "power_headroom_kw": 5.0,
+    }
+    decision = evaluate(site, default_config)
+    assert decision.outcome == "NEEDS_REVIEW"
+    assert any(r.check_name == "transmission" and r.status == CheckStatus.NEEDS_REVIEW for r in decision.check_results)
+
+def test_power_required_kw_exceeds_headroom(default_config):
+    site = {
+        "site_id": "SITE-7",
+        "site_type": "rooftop",
+        "current_load_pct": 90,
+        "spectrum_available": True,
+        "backhaul_capacity_mbps": 500,
+        "backhaul_required_mbps": 400,
+        "power_headroom_kw": 3.0,
+        "power_required_kw": 5.0, # Required exceeds headroom
+    }
+    decision = evaluate(site, default_config)
+    assert decision.outcome == "REJECTED"
+    assert any(r.check_name == "power" and r.status == CheckStatus.FAIL for r in decision.check_results)
+

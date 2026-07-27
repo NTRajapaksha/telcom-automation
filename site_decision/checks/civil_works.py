@@ -2,9 +2,12 @@ from site_decision.models import CheckResult, CheckStatus, Severity
 
 def run(site: dict, cfg: dict) -> CheckResult:
     severity = Severity(cfg.get("severity", "BLOCKING"))
-    # The engine only runs this if it's configured for the site_type.
-    # We could check civil works specifics here if there were fields in the payload.
-    # For now, it passes by default unless data indicates otherwise.
-    
+    site_type = site.get("site_type")
+    required_types = cfg.get("required_for_site_types")
+
+    if required_types and site_type not in required_types:
+        return CheckResult("civil_works", CheckStatus.PASS,
+                           f"Civil works not required for site type '{site_type}'", severity)
+
     return CheckResult("civil_works", CheckStatus.PASS,
-                       "Civil works checks passed (no specific requirements)", severity)
+                       "Civil works checks passed", severity)

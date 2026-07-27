@@ -9,6 +9,10 @@ def run(site: dict, cfg: dict) -> CheckResult:
         return CheckResult("transmission", CheckStatus.NEEDS_REVIEW,
                            "Missing backhaul data", severity)
 
+    if required <= 0:
+        return CheckResult("transmission", CheckStatus.NEEDS_REVIEW,
+                           "Invalid required backhaul bandwidth (<= 0)", severity)
+
     spare_pct = (capacity - required) / required * 100
     min_spare = cfg["min_spare_capacity_pct"]
 
