@@ -1,0 +1,25 @@
+site_types:
+  rooftop:
+    checks: [rnp, transmission, power]
+  greenfield:
+    checks: [rnp, transmission, power, civil_works]
+  street_pole:
+    checks: [rnp, transmission]
+
+checks:
+  rnp:
+    severity: BLOCKING
+    max_load_pct_for_review: 90
+    min_load_pct_to_justify_upgrade: 75
+
+  transmission:
+    severity: DEGRADING
+    min_spare_capacity_pct: 15
+
+  power:
+    severity: BLOCKING
+    min_headroom_kw: 1.0
+
+  civil_works:
+    severity: BLOCKING
+    required_for_site_types: [greenfield]
