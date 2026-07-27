@@ -231,3 +231,13 @@ The unit test suite covers:
    * Payload inputs use `extra="allow"` in Pydantic. Future telecom field additions ride along in the dictionary without breaking existing evaluations.
 
 ---
+
+## What I'd Do Differently With More Time
+
+If expanding this service for high-volume enterprise production use, the following enhancements would be added:
+
+* **Strict Config Load Validation:** Implement schema validation (using Pydantic or JSON Schema) for YAML configuration files at startup to detect missing or mistyped thresholds before receiving requests.
+* **Multi-Tenant Dynamic Routing:** Extend the REST API to load configurations dynamically based on request headers (e.g., `X-Operator-ID`) or database-backed configuration stores rather than loading a single static path at startup.
+* **Structured Audit Logging:** Emit JSON audit logs containing `site_id`, decision `outcome`, ruleset version, timestamp, and evaluation execution time for regulatory tracking.
+* **Idempotency Control:** Include idempotency keys on evaluation calls to prevent accidental duplicate upgrade work orders downstream.
+
