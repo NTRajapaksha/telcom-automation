@@ -228,6 +228,8 @@ The unit test suite covers:
    * `DEGRADING` failures do not halt execution, allowing the system to gather all necessary prerequisites before issuing an upgrade authorization.
 3. **Forward-Compatible Schema (`extra="allow"`)**
    * Payload inputs use `extra="allow"` in Pydantic. Future telecom field additions ride along in the dictionary without breaking existing evaluations.
+4. **Civil Works Check Implementation**
+   * Civil works evaluation is gated by `site_type` in configuration (`greenfield`). In the current version, `civil_works.py` acts as a placeholder check strategy that passes by default unless physical footprint attributes (e.g. `floor_space_sqm_required`) are provided in future payloads.
 
 ---
 
