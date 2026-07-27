@@ -41,7 +41,6 @@ Checks are not evaluated as simple independent booleans. Instead, checks carry e
 telcom/
 ├── README.md                           # Complete project documentation
 ├── requirements.txt                    # Dependencies (FastAPI, Pydantic, PyYAML, pytest, httpx)
-├── implementation-plan.md              # Architectural design document and build rationale
 ├── site_decision/                      # Core python package
 │   ├── __init__.py
 │   ├── models.py                       # CheckStatus, Severity, CheckResult, and Decision schemas
