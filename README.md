@@ -148,20 +148,56 @@ curl http://localhost:8000/health
 ```
 *Response:* `{"status": "ok"}`
 
-#### Evaluate Site Endpoint
+#### Evaluate Site Endpoint (Example Scenarios)
+
+**1. Perfect Pass (APPROVED without prerequisites)**
 ```bash
-curl -X POST http://localhost:8000/evaluate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "site_id": "SITE-1042",
-    "site_type": "rooftop",
-    "current_load_pct": 92,
-    "spectrum_available": true,
-    "backhaul_capacity_mbps": 450,
-    "backhaul_required_mbps": 600,
-    "power_headroom_kw": 3.2,
-    "power_required_kw": 2.8
-  }'
+curl -X POST http://localhost:8000/evaluate -H "Content-Type: application/json" \
+  -d '{"site_id": "SITE-1", "site_type": "rooftop", "current_load_pct": 85, "spectrum_available": true, "backhaul_capacity_mbps": 500, "backhaul_required_mbps": 400, "power_headroom_kw": 1.5}'
+```
+*Output:*
+```json
+{"site_id":"SITE-1","outcome":"APPROVED","check_results":[{"check_name":"rnp","status":"PASS","reason":"Load 85.0% >= 80% and spectrum is available","severity":"BLOCKING"},{"check_name":"transmission","status":"PASS","reason":"Spare capacity 25.0% >= 10%","severity":"DEGRADING"},{"check_name":"power","status":"PASS","reason":"Power headroom 1.5kW >= 0.0kW","severity":"BLOCKING"}],"prerequisites":[]}
+```
+
+**2. Degrading Failure (APPROVED with prerequisite)**
+```bash
+curl -X POST http://localhost:8000/evaluate -H "Content-Type: application/json" \
+  -d '{"site_id": "SITE-2", "site_type": "rooftop", "current_load_pct": 85, "spectrum_available": true, "backhaul_capacity_mbps": 400, "backhaul_required_mbps": 400, "power_headroom_kw": 1.5}'
+```
+*Output:*
+```json
+{"site_id":"SITE-2","outcome":"APPROVED","check_results":[{"check_name":"rnp","status":"PASS","reason":"Load 85.0% >= 80% and spectrum is available","severity":"BLOCKING"},{"check_name":"transmission","status":"FAIL","reason":"Transmission: Insufficient spare capacity (0.0% < 10%)","severity":"DEGRADING"},{"check_name":"power","status":"PASS","reason":"Power headroom 1.5kW >= 0.0kW","severity":"BLOCKING"}],"prerequisites":["Transmission: Insufficient spare capacity (0.0% < 10%)"]}
+```
+
+**3. Blocking Failure (REJECTED and short-circuited)**
+```bash
+curl -X POST http://localhost:8000/evaluate -H "Content-Type: application/json" \
+  -d '{"site_id": "SITE-3", "site_type": "rooftop", "current_load_pct": 50, "spectrum_available": true, "backhaul_capacity_mbps": 500, "backhaul_required_mbps": 400, "power_headroom_kw": 1.5}'
+```
+*Output:*
+```json
+{"site_id":"SITE-3","outcome":"REJECTED","check_results":[{"check_name":"rnp","status":"FAIL","reason":"Load 50.0% < 80% does not justify upgrade","severity":"BLOCKING"}],"prerequisites":[]}
+```
+
+**4. Missing Data (NEEDS_REVIEW)**
+```bash
+curl -X POST http://localhost:8000/evaluate -H "Content-Type: application/json" \
+  -d '{"site_id": "SITE-4", "site_type": "rooftop", "current_load_pct": 85, "spectrum_available": true, "backhaul_capacity_mbps": 500, "backhaul_required_mbps": 400}'
+```
+*Output:*
+```json
+{"site_id":"SITE-4","outcome":"NEEDS_REVIEW","check_results":[{"check_name":"rnp","status":"PASS","reason":"Load 85.0% >= 80% and spectrum is available","severity":"BLOCKING"},{"check_name":"transmission","status":"PASS","reason":"Spare capacity 25.0% >= 10%","severity":"DEGRADING"},{"check_name":"power","status":"NEEDS_REVIEW","reason":"Missing power_headroom_kw data","severity":"BLOCKING"}],"prerequisites":[]}
+```
+
+**5. Forward Compatibility (Unknown Extra Fields)**
+```bash
+curl -X POST http://localhost:8000/evaluate -H "Content-Type: application/json" \
+  -d '{"site_id": "SITE-5", "site_type": "rooftop", "current_load_pct": 85, "spectrum_available": true, "backhaul_capacity_mbps": 500, "backhaul_required_mbps": 400, "power_headroom_kw": 1.5, "future_5g_antenna_count": 12}'
+```
+*Output:*
+```json
+{"site_id":"SITE-5","outcome":"APPROVED","check_results":[{"check_name":"rnp","status":"PASS","reason":"Load 85.0% >= 80% and spectrum is available","severity":"BLOCKING"},{"check_name":"transmission","status":"PASS","reason":"Spare capacity 25.0% >= 10%","severity":"DEGRADING"},{"check_name":"power","status":"PASS","reason":"Power headroom 1.5kW >= 0.0kW","severity":"BLOCKING"}],"prerequisites":[]}
 ```
 
 ---
@@ -196,11 +232,11 @@ The unit test suite covers:
 
 ---
 
-## Production Recommendations & Future Improvements
+## What I'd Do Differently With More Time
 
-If expanding this service for high-volume enterprise production use, the following enhancements are recommended:
+If expanding this service for high-volume enterprise production use, the following enhancements would be added:
 
-* **Strict Config Validation:** Implement schema validation (using Pydantic or JSON Schema) for YAML configuration files at startup to detect missing or mistyped thresholds before receiving requests.
-* **Multi-Tenant Dynamic Routing:** Extend the REST API to load configurations dynamically based on request headers (e.g., `X-Operator-ID`) or database-backed configuration stores.
+* **Strict Config Load Validation:** Implement schema validation (using Pydantic or JSON Schema) for YAML configuration files at startup to detect missing or mistyped thresholds before receiving requests.
+* **Multi-Tenant Dynamic Routing:** Extend the REST API to load configurations dynamically based on request headers (e.g., `X-Operator-ID`) or database-backed configuration stores rather than loading a single static path at startup.
 * **Structured Audit Logging:** Emit JSON audit logs containing `site_id`, decision `outcome`, ruleset version, timestamp, and evaluation execution time for regulatory tracking.
 * **Idempotency Control:** Include idempotency keys on evaluation calls to prevent accidental duplicate upgrade work orders downstream.
